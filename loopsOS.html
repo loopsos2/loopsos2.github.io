@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>loopsOS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Mono&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;}
+:root{
+--bg:#008080;--taskbar:#c0c0c0;--win:#c0c0c0;--title-active:#000080;--title-inactive:#808080;
+--title-text:#fff;--border-light:#fff;--border-dark:#808080;--border-darker:#404040;
+--text:#000;--btn:#c0c0c0;--highlight:#000080;--highlight-text:#fff;--inset:#808080;
+}
+body{font-family:'MS Sans Serif',Arial,sans-serif;font-size:11px;background:var(--bg);overflow:hidden;width:100vw;height:100vh;}
+.desktop{width:100vw;height:calc(100vh - 30px);position:relative;overflow:hidden;}
+.wallpaper{position:absolute;inset:0;background:var(--bg);}
+.desktop-icons{position:absolute;top:8px;left:8px;display:flex;flex-direction:column;gap:4px;}
+.desktop-icon{display:flex;flex-direction:column;align-items:center;width:72px;padding:4px;cursor:pointer;border:1px solid transparent;}
+.desktop-icon:hover{border:1px dotted #fff;background:rgba(0,0,128,0.3);}
+.desktop-icon.selected{border:1px dotted #fff;background:rgba(0,0,128,0.5);}
+.desktop-icon img,.desktop-icon .icon-img{width:32px;height:32px;image-rendering:pixelated;}
+.desktop-icon span{color:#fff;text-align:center;font-size:11px;margin-top:2px;text-shadow:1px 1px 1px #000;word-break:break-word;}
+.taskbar{position:fixed;bottom:0;left:0;right:0;height:30px;background:var(--taskbar);
+border-top:2px solid var(--border-light);display:flex;align-items:center;gap:2px;padding:2px;z-index:9999;}
+.start-btn{display:flex;align-items:center;gap:4px;padding:2px 6px;font-weight:bold;font-size:12px;
+background:var(--btn);border-top:2px solid var(--border-light);border-left:2px solid var(--border-light);
+border-right:2px solid var(--border-darker);border-bottom:2px solid var(--border-darker);cursor:pointer;height:24px;}
+.start-btn:active,.start-btn.active{border-top:2px solid var(--border-darker);border-left:2px solid var(--border-darker);
+border-right:2px solid var(--border-light);border-bottom:2px solid var(--border-light);}
+.taskbar-sep{width:2px;height:20px;background:var(--border-dark);border-right:1px solid var(--border-light);margin:0 2px;}
+.taskbar-clock{margin-left:auto;padding:2px 6px;border-top:1px solid var(--border-dark);border-left:1px solid var(--border-dark);
+border-right:1px solid var(--border-light);border-bottom:1px solid var(--border-light);font-size:11px;min-width:60px;text-align:center;}
+.taskbar-tasks{display:flex;gap:2px;flex:1;overflow:hidden;}
+.task-btn{height:22px;padding:0 8px;font-size:11px;background:var(--btn);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+border-top:2px solid var(--border-light);border-left:2px solid var(--border-light);border-right:2px solid var(--border-darker);border-bottom:2px solid var(--border-darker);cursor:pointer;}
+.task-btn.active{border-top:2px solid var(--border-darker);border-left:2px solid var(--border-darker);border-right:2px solid var(--border-light);border-bottom:2px solid var(--border-light);background:#b0b0b0;}
+.window{position:absolute;background:var(--win);min-width:200px;min-height:150px;
+border-top:2px solid var(--border-light);border-left:2px solid var(--border-light);
+border-right:2px solid var(--border-darker);border-bottom:2px solid var(--border-darker);}
+.window.active{z-index:1000;}
+.title-bar{height:20px;background:var(--title-active);display:flex;align-items:center;padding:0 2px;cursor:move;}
+.window:not(.active) .title-bar{background:var(--title-inactive);}
+.title-bar-text{color:var(--title-text);font-size:11px;font-weight:bold;flex:1;padding:0 2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.title-bar-controls{display:flex;gap:2px;}
+.title-bar-controls button{width:16px;height:14px;font-size:9px;line-height:1;display:flex;align-items:center;justify-content:center;
+background:var(--btn);border-top:1px solid var(--border-light);border-left:1px solid var(--border-light);
+border-right:1px solid var(--border-darker);border-bottom:1px solid var(--border-darker);cursor:pointer;font-family:inherit;}
+.title-bar-controls button:active{border-top:1px solid var(--border-darker);border-left:1px solid var(--border-darker);
+border-right:1px solid var(--border-light);border-bottom:1px solid var(--border-light);}
+.menu-bar{height:18px;background:var(--win);display:flex;align-items:center;border-bottom:1px solid var(--border-dark);}
+.menu-item{padding:2px 6px;cursor:pointer;font-size:11px;height:18px;display:flex;align-items:center;}
+.menu-item:hover,.menu-item.open{background:var(--highlight);color:var(--highlight-text);}
+.window-content{padding:4px;overflow:auto;}
+.win-inner{border-top:1px solid var(--border-dark);border-left:1px solid var(--border-dark);
+border-right:1px solid var(--border-light);border-bottom:1px solid var(--border-light);}
+.btn{background:var(--btn);border-top:2px solid var(--border-light);border-left:2px solid var(--border-light);
+border-right:2px solid var(--border-darker);border-bottom:2px solid var(--border-darker);
+padding:2px 12px;cursor:pointer;font-family:'MS Sans Serif',Arial,sans-serif;font-size:11px;min-width:75px;height:23px;}
+.btn:active{border-top:2px solid var(--border-darker);border-left:2px solid var(--border-darker);
+border-right:2px solid var(--border-light);border-bottom:2px solid var(--border-light);}
+.btn:focus{outline:1px dotted #000;outline-offset:-3px;}
+input[type=text],input[type=number],input[type=password],textarea,select{
+font-family:'MS Sans Serif',Arial,sans-serif;font-size:11px;
+border-top:2px solid var(--border-dark);border-left:2px solid var(--border-dark);
+border-right:2px solid var(--border-light);border-bottom:2px solid var(--border-light);
+background:#fff;color:#000;padding:2px;}
+input[type=range]{accent-color:var(--title-active);}
+.start-menu{position:fixed;bottom:30px;left:0;width:200px;background:var(--win);
+border-top:2px solid var(--border-light);border-left:2px solid var(--border-light);
+border-right:2px solid var(--border-darker);border-bottom:2px solid var(--border-darker);
+z-index:10000;display:none;}
+.start-menu.open{display:flex;}
+.start-menu-sidebar{width:24px;background:var(--title-active);writing-mode:vertical-rl;
+transform:rotate(180deg);display:flex;align-items:center;justify-content:center;
+color:#fff;font-size:14px;font-weight:bold;letter-spacing:2px;padding:4px;}
+.start-menu-items{flex:1;}
+.start-menu-item{padding:4px 8px;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:12px;}
+.start-menu-item:hover{background:var(--highlight);color:var(--highlight-text);}
+.start-menu-sep{height:1px;background:var(--border-dark);margin:2px 0;border-bottom:1px solid var(--border-light);}
+.ctx-menu{position:fixed;background:var(--win);z-index:99999;
+border-top:2px solid var(--border-light);border-left:2px solid var(--border-light);
+border-right:2px solid var(--border-darker);border-bottom:2px solid var(--border-darker);min-width:120px;}
+.ctx-item{padding:3px 16px;cursor:pointer;font-size:11px;}
+.ctx-item:hover{background:var(--highlight);color:var(--highlight-text);}
+.ctx-sep{height:1px;background:var(--border-dark);margin:2px 0;border-bottom:1px solid var(--border-light);}
+.resize-handle{position:absolute;right:0;bottom:0;width:12px;height:12px;cursor:se-resize;}
+.status-bar{border-top:1px solid var(--border-dark);height:20px;display:flex;align-items:center;padding:0 4px;font-size:11px;}
+.progress-bar{height:16px;background:#fff;border-top:1px solid var(--border-dark);border-left:1px solid var(--border-dark);border-right:1px solid var(--border-light);border-bottom:1px solid var(--border-light);overflow:hidden;}
+.progress-fill{height:100%;background:var(--title-active);transition:width 0.1s;}
+.tabs{display:flex;gap:0;}
+.tab{padding:3px 10px;background:#b0b0b0;border-top:2px solid var(--border-light);border-left:2px solid var(--border-light);border-right:2px solid var(--border-darker);cursor:pointer;font-size:11px;}
+.tab.active{background:var(--win);z-index:1;position:relative;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+.list-box{background:#fff;border-top:2px solid var(--border-dark);border-left:2px solid var(--border-dark);border-right:2px solid var(--border-light);border-bottom:2px solid var(--border-light);overflow-y:auto;}
+.list-item{padding:1px 4px;cursor:pointer;}
+.list-item:hover{background:var(--highlight);color:var(--highlight-text);}
+.list-item.selected{background:var(--highlight);color:var(--highlight-text);}
+canvas{display:block;}
+.mono{font-family:'Consolas',monospace;font-size:12px;}
+.icon16{width:16px;height:16px;image-rendering:pixelated;display:inline-block;}
+</style>
+</head>
+<body>
+<div class="desktop" id="desktop">
+<div class="wallpaper" id="wallpaper"></div>
+<div class="desktop-icons" id="desktopIcons"></div>
+</div>
+<div class="taskbar" id="taskbar">
+<button class="start-btn" id="startBtn" onclick="toggleStart()">&#9658; Start</button>
+<div class="taskbar-sep"></div>
+<div class="taskbar-tasks" id="taskbarTasks"></div>
+<div class="taskbar-clock" id="clock"></div>
+</div>
+<div class="start-menu" id="startMenu">
+<div class="start-menu-sidebar">loopsOS</div>
+<div class="start-menu-items" id="startMenuItems"></div>
+</div>
+<div class="ctx-menu" id="ctxMenu" style="display:none;"></div>
+<script src="apps-system.js"></script>
+<script src="loopsoshub.js"></script>
+<script>
+(function(){
+function updateClock(){
+let d=new Date();
+document.getElementById('clock').textContent=
+d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+}
+updateClock();
+setInterval(updateClock,1000);
+document.getElementById('desktop').addEventListener('contextmenu',function(e){
+e.preventDefault();
+showCtxMenu(e.clientX,e.clientY,[
+{label:'Arrange Icons',action:function(){}},
+{label:'Refresh',action:function(){renderDesktopIcons();}},
+{sep:true},
+{label:'New Sticky Note',action:function(){openApp('Sticky Note');}},
+{sep:true},
+{label:'Properties',action:function(){openApp('Settings');}}
+]);
+});
+document.addEventListener('click',function(e){
+if(!e.target.closest('#ctxMenu'))hideCtxMenu();
+if(!e.target.closest('#startMenu')&&!e.target.closest('#startBtn'))closeStart();
+});
+renderDesktopIcons();
+buildStartMenu();
+})();
+</script>
+</body>
+</html>
